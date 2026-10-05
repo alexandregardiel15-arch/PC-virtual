@@ -1,0 +1,64 @@
+name: Configurar PC Virtual
+
+on:
+  workflow_dispatch:
+
+jobs:
+  setup:
+    runs-on: windows-latest
+
+    steps:
+      - name: Baixar AnyDesk
+        shell: powershell
+        run: |
+          $url = "https://download.anydesk.com/AnyDesk.exe"
+          $out = "$env:TEMP\AnyDesk.exe"
+          Invoke-WebRequest -Uri $url -OutFile $out
+          Start-Process $out -ArgumentList "--install","C:\Program Files (x86)\AnyDesk","--start-with-win","--create-shortcuts" -Wait
+
+      - name: Configurar acesso não supervisionado
+        shell: powershell
+        env:
+          ANYDESK_PASSWORD: ${{ secrets.ANYDESK_PASSWORD }}
+        run: |
+          $anydesk = "C:\Program Files (x86)\AnyDesk\AnyDesk.exe"
+
+          if (-not (Test-Path $anydesk)) {
+            $anydesk = "C:\Program Files\AnyDesk\AnyDesk.exe"
+          }
+
+          if (-not $env:ANYDESK_PASSWORD) {
+            throw "Configure o Secret ANYDESK_PASSWORD no GitHub."
+          }
+
+          $env:ANYDESK_PASSWORD | & $anydesk --set-password
+
+      - name: Iniciar AnyDesk
+        shell: powershell
+        run: |
+          $anydesk = "C:\Program Files (x86)\AnyDesk\AnyDesk.exe"
+
+          if (-not (Test-Path $anydesk)) {
+            $anydesk = "C:\Program Files\AnyDesk\AnyDesk.exe"
+          }
+
+          & $anydesk --start
+
+      - name: Mostrar ID do AnyDesk
+        shell: powershell
+        run: |
+          Start-Sleep -Seconds 10
+
+          $anydesk = "C:\Program Files (x86)\AnyDesk\AnyDesk.exe"
+
+          if (-not (Test-Path $anydesk)) {
+            $anydesk = "C:\Program Files\AnyDesk\AnyDesk.exe"
+          }
+
+          $id = (& $anydesk --get-id).Trim()
+
+          Write-Host ""
+          Write-Host "================================="
+          Write-Host " ID DO ANYDESK: $id"
+          Write-Host "================================="
+          Write-Host ""
